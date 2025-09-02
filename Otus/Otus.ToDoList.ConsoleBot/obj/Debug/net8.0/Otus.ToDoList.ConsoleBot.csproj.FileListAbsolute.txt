@@ -1,0 +1,11 @@
+C:\Users\User\Desktop\Пономарев\учеба\дз33333\дз3\Otus\Otus.ToDoList.ConsoleBot\bin\Debug\net8.0\Otus.ToDoList.ConsoleBot.deps.json
+C:\Users\User\Desktop\Пономарев\учеба\дз33333\дз3\Otus\Otus.ToDoList.ConsoleBot\bin\Debug\net8.0\Otus.ToDoList.ConsoleBot.dll
+C:\Users\User\Desktop\Пономарев\учеба\дз33333\дз3\Otus\Otus.ToDoList.ConsoleBot\bin\Debug\net8.0\Otus.ToDoList.ConsoleBot.pdb
+C:\Users\User\Desktop\Пономарев\учеба\дз33333\дз3\Otus\Otus.ToDoList.ConsoleBot\obj\Debug\net8.0\Otus.ToDoList.ConsoleBot.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\User\Desktop\Пономарев\учеба\дз33333\дз3\Otus\Otus.ToDoList.ConsoleBot\obj\Debug\net8.0\Otus.ToDoList.ConsoleBot.AssemblyInfoInputs.cache
+C:\Users\User\Desktop\Пономарев\учеба\дз33333\дз3\Otus\Otus.ToDoList.ConsoleBot\obj\Debug\net8.0\Otus.ToDoList.ConsoleBot.AssemblyInfo.cs
+C:\Users\User\Desktop\Пономарев\учеба\дз33333\дз3\Otus\Otus.ToDoList.ConsoleBot\obj\Debug\net8.0\Otus.ToDoList.ConsoleBot.csproj.CoreCompileInputs.cache
+C:\Users\User\Desktop\Пономарев\учеба\дз33333\дз3\Otus\Otus.ToDoList.ConsoleBot\obj\Debug\net8.0\Otus.ToDoList.ConsoleBot.dll
+C:\Users\User\Desktop\Пономарев\учеба\дз33333\дз3\Otus\Otus.ToDoList.ConsoleBot\obj\Debug\net8.0\refint\Otus.ToDoList.ConsoleBot.dll
+C:\Users\User\Desktop\Пономарев\учеба\дз33333\дз3\Otus\Otus.ToDoList.ConsoleBot\obj\Debug\net8.0\Otus.ToDoList.ConsoleBot.pdb
+C:\Users\User\Desktop\Пономарев\учеба\дз33333\дз3\Otus\Otus.ToDoList.ConsoleBot\obj\Debug\net8.0\ref\Otus.ToDoList.ConsoleBot.dll

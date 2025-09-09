@@ -1,25 +1,24 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using ConsoleApp2.Core.Services;
+using ConsoleApp2.Core.Entities;
+using ConsoleApp2.Core.Exceptions;
 using Otus.ToDoList.ConsoleBot;
 using Otus.ToDoList.ConsoleBot.Types;
 
-namespace ConsoleApp2
+namespace ConsoleApp2.TelegramBot
 {
-
-
     public class UpdateHandler : IUpdateHandler
     {
         private readonly IUserService _userService;
         private readonly IToDoService _toDoService;
+        private readonly IToDoReportService _toDoReportService;
 
-        // Конструктор с внедрением зависимостей
-        public UpdateHandler(IUserService userService, IToDoService toDoService)
+        public UpdateHandler(IUserService userService, IToDoService toDoService, IToDoReportService toDoReportService)
         {
             _userService = userService;
             _toDoService = toDoService;
+            _toDoReportService = toDoReportService;
         }
 
         public void HandleUpdateAsync(ITelegramBotClient botClient, Update update)
@@ -28,22 +27,18 @@ namespace ConsoleApp2
             {
                 if (update.Message?.Text == null || update.Message.From == null) return;
 
-                var messageText = update.Message.Text.Trim().ToLower();
+                var messageText = update.Message.Text.Trim();
                 var chat = update.Message.Chat;
                 var telegramUser = update.Message.From;
 
-                // Получаем пользователя
                 var todoUser = _userService.GetUser(telegramUser.Id);
 
-                // Определяем доступные команды
                 string[] unregisteredCommands = { "/start", "/help", "/info" };
-                string[] allCommands = { "/start", "/help", "/info", "/exit", "/addtask", "/showtask", "/removetask", "/completetask", "/setmaxtasks", "/setmaxtasklength" };
+                string[] allCommands = { "/start", "/help", "/info", "/exit", "/addtask", "/showtask", "/removetask", "/completetask", "/setmaxtasks", "/setmaxtasklength", "/report", "/find" };
 
-                // Проверяем, зарегистрирован ли пользователь
                 bool isRegistered = todoUser != null;
                 string[] availableCommands = isRegistered ? allCommands : unregisteredCommands;
 
-                // Проверка на пустой ввод или неизвестную команду
                 if (string.IsNullOrWhiteSpace(messageText) || !availableCommands.Any(cmd => messageText.StartsWith(cmd)))
                 {
                     if (!isRegistered)
@@ -57,8 +52,7 @@ namespace ConsoleApp2
                     return;
                 }
 
-                // Обработка команд
-                switch (messageText.Split(' ')[0])
+                switch (messageText.Split(' ')[0].ToLower())
                 {
                     case "/start":
                         HandleStart(botClient, chat, telegramUser);
@@ -68,6 +62,14 @@ namespace ConsoleApp2
                         break;
                     case "/info":
                         HandleInfo(botClient, chat, todoUser);
+                        break;
+                    case "/report":
+                        if (isRegistered) HandleReport(botClient, chat, todoUser);
+                        else SendNotRegisteredMessage(botClient, chat);
+                        break;
+                    case "/find":
+                        if (isRegistered) HandleFind(botClient, chat, messageText, todoUser);
+                        else SendNotRegisteredMessage(botClient, chat);
                         break;
                     case "/exit":
                         Environment.Exit(0);
@@ -79,7 +81,7 @@ namespace ConsoleApp2
                         }
                         else
                         {
-                            botClient.SendMessage(chat, "Для использования этой команды необходимо зарегистрироваться. Введите команду /start");
+                            SendNotRegisteredMessage(botClient, chat);
                         }
                         break;
                 }
@@ -118,6 +120,8 @@ namespace ConsoleApp2
                            "/removetask [номер] - удалить задачу\n" +
                            "/setmaxtasks [число] - установить макс. количество задач\n" +
                            "/setmaxtasklength [число] - установить макс. длину задачи\n" +
+                           "/report - показать статистику по задачам\n" +
+                           "/find [префикс] - найти задачи по префиксу\n" +
                            "/exit - выйти";
             }
             else
@@ -157,9 +161,43 @@ namespace ConsoleApp2
             botClient.SendMessage(chat, infoText);
         }
 
+        private void HandleReport(ITelegramBotClient botClient, Chat chat, ToDoUser user)
+        {
+            var stats = _toDoReportService.GetUserStats(user.UserId);
+
+            var reportText = $"Статистика по задачам на {stats.generatedAt:dd.MM.yyyy HH:mm:ss}.\n" +
+                           $"Всего: {stats.total}; Завершенных: {stats.completed}; Активных: {stats.active};";
+
+            botClient.SendMessage(chat, reportText);
+        }
+
+        private void HandleFind(ITelegramBotClient botClient, Chat chat, string messageText, ToDoUser user)
+        {
+            var namePrefix = messageText.Substring("/find".Length).Trim();
+
+            if (string.IsNullOrWhiteSpace(namePrefix))
+            {
+                botClient.SendMessage(chat, "Пожалуйста, укажите префикс для поиска после команды /find");
+                return;
+            }
+
+            var foundTasks = _toDoService.Find(user, namePrefix).ToList();
+
+            if (foundTasks.Count == 0)
+            {
+                botClient.SendMessage(chat, $"Задачи с префиксом '{namePrefix}' не найдены");
+                return;
+            }
+
+            var tasksList = string.Join("\n", foundTasks.Select((task, index) =>
+                $"{index + 1}. {task.Name} - {task.CreatedAt:dd.MM.yyyy HH:mm:ss} - {task.Id}"));
+
+            botClient.SendMessage(chat, $"Найденные задачи:\n{tasksList}");
+        }
+
         private void HandleRegisteredCommands(ITelegramBotClient botClient, Chat chat, string messageText, ToDoUser user)
         {
-            switch (messageText.Split(' ')[0])
+            switch (messageText.Split(' ')[0].ToLower())
             {
                 case "/addtask":
                     HandleAddtask(botClient, chat, messageText, user);
@@ -199,7 +237,15 @@ namespace ConsoleApp2
 
                 botClient.SendMessage(chat, $"Задача добавлена. ID: {newTask.Id}. Всего активных задач: {activeTasks.Count}");
             }
-            catch (InvalidOperationException ex)
+            catch (TaskCountLimitException ex)
+            {
+                botClient.SendMessage(chat, ex.Message);
+            }
+            catch (TaskLengthLimitException ex)
+            {
+                botClient.SendMessage(chat, ex.Message);
+            }
+            catch (DuplicateTaskException ex)
             {
                 botClient.SendMessage(chat, ex.Message);
             }
@@ -215,7 +261,6 @@ namespace ConsoleApp2
                 return;
             }
 
-            // Формируем список задач с ID и датой создания
             var tasksList = string.Join("\n", activeTasks.Select((task, index) =>
                 $"{index + 1}. {task.Name} - {task.CreatedAt:dd.MM.yyyy HH:mm:ss} - {task.Id}"));
 
@@ -239,7 +284,6 @@ namespace ConsoleApp2
                 return;
             }
 
-            // Завершаем задачу
             var taskToComplete = activeTasks[taskNumber - 1];
             _toDoService.MarkCompleted(taskToComplete.Id);
 
@@ -284,15 +328,8 @@ namespace ConsoleApp2
                 return;
             }
 
-            if (_toDoService is ToDoService todoService)
-            {
-                todoService.SetMaxTasks(maxTasks);
-                botClient.SendMessage(chat, $"Максимальное количество активных задач установлено: {maxTasks}");
-            }
-            else
-            {
-                botClient.SendMessage(chat, "Невозможно изменить максимальное количество задач");
-            }
+            _toDoService.SetMaxTasks(maxTasks);
+            botClient.SendMessage(chat, $"Максимальное количество активных задач установлено: {maxTasks}");
         }
 
         private void HandleSetMaxTaskLength(ITelegramBotClient botClient, Chat chat, string messageText)
@@ -304,24 +341,13 @@ namespace ConsoleApp2
                 return;
             }
 
-            if (_toDoService is ToDoService todoService)
-            {
-                todoService.SetMaxTaskLength(maxTaskLength);
-                botClient.SendMessage(chat, $"Максимальная длина задачи установлена: {maxTaskLength}");
-            }
-            else
-            {
-                botClient.SendMessage(chat, "Невозможно изменить максимальную длину задачи");
-            }
+            _toDoService.SetMaxTaskLength(maxTaskLength);
+            botClient.SendMessage(chat, $"Максимальная длина задачи установлена: {maxTaskLength}");
+        }
+
+        private void SendNotRegisteredMessage(ITelegramBotClient botClient, Chat chat)
+        {
+            botClient.SendMessage(chat, "Для использования этой команды необходимо зарегистрироваться. Введите команду /start");
         }
     }
 }
-
-
-        
-
-
-
-     
-    
-

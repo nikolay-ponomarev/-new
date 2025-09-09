@@ -1,10 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace ConsoleApp2
+namespace ConsoleApp2.Core.Entities
 {
     public class ToDoUser
     {
@@ -20,7 +16,5 @@ namespace ConsoleApp2
             TelegramUserName = telegramUserName;
             RegisteredAt = DateTime.Now;
         }
-
     }
-
 }

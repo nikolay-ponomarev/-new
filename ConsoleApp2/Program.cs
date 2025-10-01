@@ -1,9 +1,8 @@
-﻿
-
+﻿using System;
+using ConsoleApp2.Core.Services;
+using ConsoleApp2.Infrastructure.DataAccess;
+using ConsoleApp2.TelegramBot;
 using Otus.ToDoList.ConsoleBot;
-using System;
-using System.Security.Principal;
-using static System.Net.Mime.MediaTypeNames;
 
 namespace ConsoleApp2
 {
@@ -13,17 +12,16 @@ namespace ConsoleApp2
         {
             try
             {
-                // Создаем сервисы
-                var userService = new UserService();
-                var toDoService = new ToDoService();
+                var userRepository = new InMemoryUserRepository();
+                var toDoRepository = new InMemoryToDoRepository();
 
-                // Создаем обработчик обновлений с внедренными зависимостями
-                var handler = new UpdateHandler(userService, toDoService);
+                var userService = new UserService(userRepository);
+                var toDoService = new ToDoService(toDoRepository);
+                var toDoReportService = new ToDoReportService(toDoRepository);
 
-                // Создаем клиент бота
+                var handler = new UpdateHandler(userService, toDoService, toDoReportService);
                 var botClient = new ConsoleBotClient();
 
-                // Запускаем получение обновлений
                 botClient.StartReceiving(handler);
             }
             catch (Exception ex)
